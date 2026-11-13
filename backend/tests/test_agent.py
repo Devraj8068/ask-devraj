@@ -158,10 +158,10 @@ async def test_fit_flow_validates_and_downgrades(retriever):
     events = await run(graph, {"jd": "x" * 100})
     result = next(e for e in events if e["type"] == "fit")["result"]
     statuses = [r["status"] for r in result["rows"]]
-    # row 1: uncited match -> partial by the assessor guard, then flagged by validator -> gap
-    assert statuses == ["match", "gap", "match"]
+    # row 1: uncited match -> partial by the assessor guard; the validator flag keeps it at partial
+    assert statuses == ["match", "partial", "match"]
     assert result["rows"][1]["downgraded"] is True
-    assert result["score"] == 80  # (2 + 0 + 2) / (2 + 1 + 2)
+    assert result["score"] == 90  # (2 + 0.5 + 2) / (2 + 1 + 2)
 
 
 # --------------------------------------------------------------------------------- API
