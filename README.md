@@ -15,7 +15,7 @@ It uses the same pattern I build in production: role-based agents over a RAG pip
 
 ```mermaid
 flowchart LR
-    UI[React + Vite<br/>Vercel] -- SSE --> API[FastAPI<br/>HF Spaces]
+    UI[React + Vite<br/>Vercel] -- SSE --> API[FastAPI<br/>Vercel Python function]
     subgraph Chat agent
       P[Planner<br/>gpt-oss-20b] --> R[Retriever<br/>BM25 + FAISS · RRF]
       R --> A[Answerer<br/>gpt-oss-120b]
@@ -31,7 +31,7 @@ flowchart LR
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Orchestration | LangGraph `StateGraph` | Explicit, testable agent steps; custom stream mode feeds the live trace |
-| Retrieval | BM25 + FAISS (bge-small via fastembed), fused with Reciprocal Rank Fusion | Keyword precision for tool names (e.g. "SageMaker") plus semantic recall |
+| Retrieval | BM25 + FAISS over model2vec embeddings (potion-base-8M, int8, bundled), fused with Reciprocal Rank Fusion | Keyword precision for tool names (e.g. "SageMaker") plus semantic recall; an 8 MB static model keeps cold starts fast on serverless |
 | LLMs | Groq: gpt-oss-120b (answers, checks), gpt-oss-20b (planning) | Open-weight, fast, free tier; automatic fallback to 20B if 120B is rate-limited |
 | Guardrails | Grounding prompt, validator + reviser, deterministic checks (a "match" must cite evidence), per-IP rate limits | No invented experience |
 | Streaming | Server-Sent Events over POST | Tokens and trace events arrive as they happen |
@@ -57,10 +57,14 @@ npm install
 npm run dev                   # http://localhost:5173
 ```
 
-## Deploy (free)
+## Deploy (free, Vercel)
 
-1. **Backend → Hugging Face Spaces (free CPU Basic).** Create a Space with the Gradio SDK and upload the contents of `backend/` (`hf_app.py` starts the FastAPI server on port 7860). Add the secret `GROQ_API_KEY` and the variable `ALLOWED_ORIGINS=https://<your-site>.vercel.app`. The `Dockerfile` works on any Docker host instead.
-2. **Frontend → Vercel.** Import the repo, set the root directory to `frontend`, and add `VITE_API_URL=https://<user>-<space>.hf.space`.
+Two Vercel projects from this one repo:
+
+1. **API:** import the repo, set the root directory to `backend`, and add the env vars `GROQ_API_KEY` and `ALLOWED_ORIGINS=https://<your-site>.vercel.app`. `api/index.py` serves the FastAPI app as a Python function.
+2. **Site:** import the repo again, set the root directory to `frontend` (Vite is auto-detected), and add `VITE_API_URL=https://<your-api>.vercel.app`.
+
+The `backend/Dockerfile` also runs the API on any container host.
 
 ## Updating what the agent knows
 
