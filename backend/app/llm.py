@@ -39,11 +39,17 @@ def groq_llms() -> LLMs:
 
     if not settings.groq_api_key:
         raise RuntimeError("GROQ_API_KEY is not set. Copy .env.example to .env and add your key.")
-    common = {"api_key": settings.groq_api_key, "max_retries": 1, "reasoning_effort": settings.reasoning_effort}
+    # A hard per-call timeout keeps a slow or rate-limited request from hanging the stream.
+    common = {"api_key": settings.groq_api_key, "max_retries": 1, "timeout": 30, "reasoning_effort": settings.reasoning_effort}
     main = ChatGroq(model=settings.model_main, temperature=0.2, **common)
     fast = ChatGroq(model=settings.model_fast, temperature=0, **common)
     judge = ChatGroq(
-        model=settings.model_main, api_key=settings.groq_api_key, max_retries=1, temperature=0, reasoning_effort="medium"
+        model=settings.model_main,
+        api_key=settings.groq_api_key,
+        max_retries=1,
+        timeout=30,
+        temperature=0,
+        reasoning_effort="medium",
     )
     return build_llms(main, fast, judge)
 
