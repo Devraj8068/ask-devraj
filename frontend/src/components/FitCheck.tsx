@@ -108,7 +108,7 @@ export function FitCheck() {
                       {r.text} {r.priority === 'nice' && <em className="muted">nice to have</em>}
                     </p>
                     <RichText text={r.evidence} sources={sources} />
-                    {r.downgraded && <p className="muted small">Downgraded by the validator: the evidence didn't fully support the claim.</p>}
+                    {r.downgraded && <p className="muted small">Flagged by the validator: part of this evidence wasn't supported by his profile, so it's rated Partial.</p>}
                   </div>
                 </li>
               ))}
