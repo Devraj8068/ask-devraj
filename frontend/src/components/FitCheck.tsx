@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { streamAgent, upsertStep, type FitResult, type Source, type Step } from '../api'
+import { settleSteps, streamAgent, upsertStep, type FitResult, type Source, type Step } from '../api'
 import { sampleJD } from '../data'
 import { RichText } from './RichText'
 import { FIT_PIPELINE } from '../pipelines'
@@ -50,7 +50,10 @@ export function FitCheck() {
           setResult(e.result)
           setSources(e.sources)
         } else if (e.type === 'error') setError(e.message)
-        else if (e.type === 'done') setTotalMs(e.ms || undefined)
+        else if (e.type === 'done') {
+          setTotalMs(e.ms || undefined)
+          setSteps(settleSteps)
+        }
       },
       abortRef.current.signal,
     )

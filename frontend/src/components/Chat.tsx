@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { streamAgent, upsertStep, type Source, type Step } from '../api'
+import { settleSteps, streamAgent, upsertStep, type Source, type Step } from '../api'
 import { suggestedQuestions } from '../data'
 import { RichText } from './RichText'
 import { CHAT_PIPELINE } from '../pipelines'
@@ -68,6 +68,7 @@ export function Chat() {
             break
           case 'done':
             setTotalMs(e.ms || undefined)
+            setSteps(settleSteps)
             break
         }
       },
