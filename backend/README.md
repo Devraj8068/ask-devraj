@@ -2,7 +2,7 @@
 
 FastAPI + LangGraph backend for [Ask Devraj](https://github.com/Devraj8068/ask-devraj). See the root README for architecture and setup.
 
-- **Vercel:** `api/index.py` exposes the app as a serverless Python function (`vercel.json` routes every path to it).
+- **Vercel:** the FastAPI preset serves the `app` exported by `index.py` (zero config).
 - **Anywhere else:** use the `Dockerfile`, or run `uvicorn app.main:app`.
 
 Required env var: `GROQ_API_KEY`. Set `ALLOWED_ORIGINS` to the deployed frontend URL.
