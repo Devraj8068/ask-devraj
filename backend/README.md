@@ -1,21 +1,10 @@
----
-title: Ask Devraj API
-emoji: 🤖
-colorFrom: indigo
-colorTo: blue
-sdk: gradio
-sdk_version: 6.32.0
-python_version: "3.12"
-app_file: hf_app.py
-pinned: false
-short_description: API for the Ask Devraj portfolio agent (LangGraph RAG)
----
-
 # Ask Devraj — API
 
 FastAPI + LangGraph backend for [Ask Devraj](https://github.com/Devraj8068/ask-devraj). See the root README for architecture and setup.
 
-- On Hugging Face Spaces, `hf_app.py` serves the API on the free CPU tier (Gradio SDK).
-- Anywhere else, use the `Dockerfile` or `uvicorn app.main:app`.
+- **Vercel:** `api/index.py` exposes the app as a serverless Python function (`vercel.json` routes every path to it).
+- **Anywhere else:** use the `Dockerfile`, or run `uvicorn app.main:app`.
 
-Required secret: `GROQ_API_KEY`. Set `ALLOWED_ORIGINS` to the deployed frontend URL.
+Required env var: `GROQ_API_KEY`. Set `ALLOWED_ORIGINS` to the deployed frontend URL.
+
+The embedding model in `models/` is [minishlab/potion-base-8M](https://huggingface.co/minishlab/potion-base-8M) (MIT), quantized to int8 with model2vec.
