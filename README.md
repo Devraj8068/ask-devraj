@@ -61,7 +61,7 @@ npm run dev                   # http://localhost:5173
 
 Two Vercel projects from this one repo:
 
-1. **API:** import the repo, set the root directory to `backend`, and add the env vars `GROQ_API_KEY` and `ALLOWED_ORIGINS=https://<your-site>.vercel.app`. `api/index.py` serves the FastAPI app as a Python function.
+1. **API:** import the repo, set the root directory to `backend`, and add the env vars `GROQ_API_KEY` and `ALLOWED_ORIGINS=https://<your-site>.vercel.app`. Vercel's FastAPI preset serves the app from `index.py`.
 2. **Site:** import the repo again, set the root directory to `frontend` (Vite is auto-detected), and add `VITE_API_URL=https://<your-api>.vercel.app`.
 
 The `backend/Dockerfile` also runs the API on any container host.
