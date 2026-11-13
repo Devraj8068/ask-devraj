@@ -1,0 +1,12 @@
+# Used by the Hugging Face Space (Gradio SDK installs gradio itself). Local dev uses uv + pyproject.toml.
+fastapi
+uvicorn[standard]
+langgraph>=1.2
+langchain-core>=1.8
+langchain-groq>=1.1
+fastembed>=0.9
+faiss-cpu>=1.16
+rank-bm25
+numpy
+pydantic>=2.10
+python-dotenv
