@@ -59,7 +59,7 @@ npm run dev                   # http://localhost:5173
 
 ## Deploy (free)
 
-1. **Backend → Hugging Face Spaces.** Create a Space (SDK: Docker), push the contents of `backend/`, and add the secret `GROQ_API_KEY` and the variable `ALLOWED_ORIGINS=https://<your-site>.vercel.app`.
+1. **Backend → Hugging Face Spaces (free CPU Basic).** Create a Space with the Gradio SDK and upload the contents of `backend/` (`hf_app.py` starts the FastAPI server on port 7860). Add the secret `GROQ_API_KEY` and the variable `ALLOWED_ORIGINS=https://<your-site>.vercel.app`. The `Dockerfile` works on any Docker host instead.
 2. **Frontend → Vercel.** Import the repo, set the root directory to `frontend`, and add `VITE_API_URL=https://<user>-<space>.hf.space`.
 
 ## Updating what the agent knows
