@@ -23,7 +23,8 @@ class Settings:
     model_fast: str = os.getenv("MODEL_FAST", "openai/gpt-oss-20b")
     # gpt-oss models reason before answering; "low" keeps latency and token use down.
     reasoning_effort: str = os.getenv("REASONING_EFFORT", "low")
-    embed_model: str = os.getenv("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
+    # Small static-embedding model bundled in the repo (model2vec potion-base-8M, int8, ~8 MB).
+    embed_model: str = os.getenv("EMBED_MODEL", str(BASE_DIR / "models" / "potion-base-8M-int8"))
     knowledge_dir: Path = Path(os.getenv("KNOWLEDGE_DIR", str(BASE_DIR / "knowledge")))
     allowed_origins: list[str] = field(
         default_factory=lambda: _csv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")

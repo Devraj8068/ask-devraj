@@ -1,11 +1,15 @@
-"""Hybrid retriever: BM25 keyword search + FAISS dense search, fused with Reciprocal Rank Fusion."""
+"""Hybrid retriever: BM25 keyword search + FAISS dense search, fused with Reciprocal Rank Fusion.
+
+Dense vectors come from a small model2vec static-embedding model bundled with the code,
+so the API starts fast and fits comfortably in serverless memory limits.
+"""
 
 import re
 from dataclasses import dataclass
 
 import faiss
 import numpy as np
-from fastembed import TextEmbedding
+from model2vec import StaticModel
 from rank_bm25 import BM25Okapi
 
 from .knowledge import Chunk
@@ -44,8 +48,8 @@ class HybridRetriever:
     def __init__(self, chunks: list[Chunk], embed_model: str):
         self.chunks = chunks
         self.bm25 = BM25Okapi([tokenize(c.as_context()) for c in chunks])
-        self.embedder = TextEmbedding(embed_model)
-        vectors = self._normalize(self.embedder.passage_embed([c.as_context() for c in chunks]))
+        self.embedder = StaticModel.from_pretrained(embed_model)
+        vectors = self._normalize(self.embedder.encode([c.as_context() for c in chunks]))
         self.index = faiss.IndexFlatIP(vectors.shape[1])  # inner product on normalized vectors = cosine
         self.index.add(vectors)
 
@@ -57,7 +61,7 @@ class HybridRetriever:
 
     def search(self, query: str, k: int = 6) -> list[Hit]:
         n = len(self.chunks)
-        sims, ids = self.index.search(self._normalize(self.embedder.query_embed(query)), n)
+        sims, ids = self.index.search(self._normalize(self.embedder.encode([query])), n)
         dense_rank = {int(i): r for r, i in enumerate(ids[0])}
         dense_sim = {int(i): float(s) for s, i in zip(sims[0], ids[0])}
 

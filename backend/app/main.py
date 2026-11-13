@@ -62,14 +62,25 @@ def client_ip(request: Request) -> str:
 def create_app(llms: LLMs | None = None, retriever: HybridRetriever | None = None) -> FastAPI:
     state: dict[str, Any] = {}
 
+    def agents() -> dict[str, Any]:
+        """Build the retriever and graphs once, on first use.
+
+        Lazy so it also works on serverless platforms that don't run lifespan hooks.
+        """
+        if not state:
+            r = retriever or HybridRetriever(load_chunks(settings.knowledge_dir), settings.embed_model)
+            models = llms or groq_llms()
+            state.update(
+                chat=build_chat_graph(r, models, settings.top_k),
+                fit=build_fit_graph(r, models),
+                chunks=len(r.chunks),
+            )
+            log.info("Ready: %d knowledge chunks indexed", len(r.chunks))
+        return state
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        r = retriever or HybridRetriever(load_chunks(settings.knowledge_dir), settings.embed_model)
-        models = llms or groq_llms()
-        state["chat"] = build_chat_graph(r, models, settings.top_k)
-        state["fit"] = build_fit_graph(r, models)
-        state["chunks"] = len(r.chunks)
-        log.info("Ready: %d knowledge chunks indexed", len(r.chunks))
+        agents()  # warm up when the server supports lifespan
         yield
 
     app = FastAPI(title="Ask Devraj API", lifespan=lifespan)
@@ -105,18 +116,18 @@ def create_app(llms: LLMs | None = None, retriever: HybridRetriever | None = Non
 
     @app.get("/api/health")
     async def health() -> dict:
-        return {"ok": True, "chunks": state.get("chunks", 0)}
+        return {"ok": True, "chunks": agents()["chunks"]}
 
     @app.post("/api/chat")
     async def chat(body: ChatRequest, request: Request) -> StreamingResponse:
         limiter.check(client_ip(request))
         inputs = {"question": body.question.strip(), "history": [t.model_dump() for t in body.history]}
-        return stream(state["chat"].astream(inputs, stream_mode="custom"))
+        return stream(agents()["chat"].astream(inputs, stream_mode="custom"))
 
     @app.post("/api/fit")
     async def fit(body: FitRequest, request: Request) -> StreamingResponse:
         limiter.check(client_ip(request))
-        return stream(state["fit"].astream({"jd": body.jd.strip()}, stream_mode="custom"))
+        return stream(agents()["fit"].astream({"jd": body.jd.strip()}, stream_mode="custom"))
 
     return app
 

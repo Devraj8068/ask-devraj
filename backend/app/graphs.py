@@ -115,7 +115,7 @@ def build_chat_graph(retriever: HybridRetriever, llms: LLMs, top_k: int = 6):
     async def validate(state: ChatState) -> dict:
         with step("validator", "Validator") as info:
             verdict = await ask_json(
-                llms.json_main,
+                llms.judge,
                 [SystemMessage(prompts.VALIDATOR), HumanMessage(f"CONTEXT:\n{number_hits(state['hits'])}\n\nANSWER:\n{state['answer']}")],
             )
             claims = [str(c) for c in verdict.get("unsupported_claims") or [] if str(c).strip()]
@@ -242,7 +242,7 @@ def build_fit_graph(retriever: HybridRetriever, llms: LLMs):
             if checkable:
                 evidence = "\n".join(f"{i}. {state['assessments'][i]['evidence']}" for i in checkable)
                 data = await ask_json(
-                    llms.json_main,
+                    llms.judge,
                     [HumanMessage(fill(prompts.FIT_VALIDATE, context=number_hits(state["hits"]), evidence=evidence))],
                 )
                 unsupported = {i for i in data.get("unsupported") or [] if i in checkable}
@@ -250,7 +250,9 @@ def build_fit_graph(retriever: HybridRetriever, llms: LLMs):
             for i, a in enumerate(state["assessments"]):
                 a = dict(a)
                 if i in unsupported:
-                    a["status"] = "partial" if a["status"] == "match" else "gap"
+                    # Flawed evidence lowers confidence but doesn't erase cited experience:
+                    # a match becomes partial, a partial stays partial (both flagged in the UI).
+                    a["status"] = "partial"
                     a["downgraded"] = True
                 assessments.append(a)
             info["detail"] = (

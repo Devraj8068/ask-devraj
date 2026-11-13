@@ -16,14 +16,19 @@ class LLMs:
     chat: Runnable  # streams user-facing answers
     json_main: Runnable  # structured reasoning (fit assessment, fact checking)
     json_fast: Runnable  # cheap structured calls (planning)
+    judge: Runnable  # fact-checking; thinks harder than the other roles
 
 
-def build_llms(main: BaseChatModel, fast: BaseChatModel, json_mode: bool = True) -> LLMs:
+def build_llms(
+    main: BaseChatModel, fast: BaseChatModel, judge: BaseChatModel | None = None, json_mode: bool = True
+) -> LLMs:
     kw = JSON_MODE if json_mode else {}
+    json_main = main.bind(**kw).with_fallbacks([fast.bind(**kw)])
     return LLMs(
         chat=main.with_fallbacks([fast]),
-        json_main=main.bind(**kw).with_fallbacks([fast.bind(**kw)]),
+        json_main=json_main,
         json_fast=fast.bind(**kw),
+        judge=judge.bind(**kw).with_fallbacks([main.bind(**kw)]) if judge is not None else json_main,
     )
 
 
@@ -37,7 +42,10 @@ def groq_llms() -> LLMs:
     common = {"api_key": settings.groq_api_key, "max_retries": 1, "reasoning_effort": settings.reasoning_effort}
     main = ChatGroq(model=settings.model_main, temperature=0.2, **common)
     fast = ChatGroq(model=settings.model_fast, temperature=0, **common)
-    return build_llms(main, fast)
+    judge = ChatGroq(
+        model=settings.model_main, api_key=settings.groq_api_key, max_retries=1, temperature=0, reasoning_effort="medium"
+    )
+    return build_llms(main, fast, judge)
 
 
 def parse_json(text: str) -> dict:
