@@ -89,8 +89,20 @@ export async function streamAgent(
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let finished = false
+  const emit = (e: AgentEvent) => {
+    if (e.type === 'done') finished = true
+    onEvent(e)
+  }
   for (;;) {
-    const { value, done } = await reader.read()
+    let chunk: ReadableStreamReadResult<Uint8Array>
+    try {
+      chunk = await reader.read()
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
+      break // network dropped mid-stream; reported below
+    }
+    const { value, done } = chunk
     if (done) break
     buffer += decoder.decode(value, { stream: true })
     let idx
@@ -100,13 +112,18 @@ export async function streamAgent(
       for (const line of frame.split('\n')) {
         if (line.startsWith('data: ')) {
           try {
-            onEvent(JSON.parse(line.slice(6)) as AgentEvent)
+            emit(JSON.parse(line.slice(6)) as AgentEvent)
           } catch {
             /* ignore malformed frame */
           }
         }
       }
     }
+  }
+  if (!finished && !signal?.aborted) {
+    // The stream ended without the server's final event (connection cut, server restarted, timeout).
+    onEvent({ type: 'error', message: 'The connection to the agent was interrupted. Please try again.' })
+    onEvent({ type: 'done', ms: 0 })
   }
 }
 
@@ -117,6 +134,11 @@ export async function checkHealth(signal?: AbortSignal): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/** When a run ends, any step still "running" never finished: mark it as failed. */
+export function settleSteps(steps: Step[]): Step[] {
+  return steps.map((s) => (s.status === 'running' ? { ...s, status: 'error', detail: 'interrupted' } : s))
 }
 
 /** Merge a step event into the ordered step list (running -> done updates in place). */
